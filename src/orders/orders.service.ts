@@ -17,8 +17,9 @@ export class OrdersService {
     // ستلاحظ أن النظام سيقوم بمعالجة طلبين فقط في نفس الوقت (بناءً على حجم الـ Semaphore).
     // بقية الطلبات لن تسبب انهيار (Crash) للنظام ولن تستهلك الذاكرة بشكل مفرط، 
     // بل ستنتظر في طابور (Queue) حتى ينتهي أحد الطلبين الحاليين.
+    this.logger.log(`User ${userId} waiting in queue (Semaphore slots: ${this.db.checkoutSemaphore.getValue()} available)`);
     return await this.db.checkoutSemaphore.runExclusive(async () => {
-      this.logger.log(`User ${userId} entered checkout processing (Semaphore acquired)`);
+      this.logger.log(`User ${userId} started processing (Semaphore slot acquired)`);
       
       const cart = this.db.carts.get(userId);
       if (!cart || cart.length === 0) {

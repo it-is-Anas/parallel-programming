@@ -39,4 +39,14 @@ export class DbService {
     }
     return this.productMutexes.get(productId)!;
   }
+
+  reset() {
+    this.products = new Map([
+      ['1', { id: '1', name: 'Laptop', stock: 10, price: 1000 }],
+      ['2', { id: '2', name: 'Phone', stock: 5, price: 500 }],
+      ['3', { id: '3', name: 'RaceConditionItem', stock: 1, price: 100 }],
+    ]);
+    this.carts.clear();
+    // No need to reset mutexes as they just guard access to IDs
+  }
 }
