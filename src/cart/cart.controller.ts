@@ -11,7 +11,10 @@ export class CartController {
   }
 
   @Post(':userId/add')
-  addToCart(@Param('userId') userId: string, @Body() body: { productId: string; quantity: number }) {
+  addToCart(
+    @Param('userId') userId: string,
+    @Body() body: { productId: string; quantity: number },
+  ) {
     return this.cartService.addToCart(userId, body.productId, body.quantity);
   }
 }

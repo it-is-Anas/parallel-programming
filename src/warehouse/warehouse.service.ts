@@ -16,7 +16,7 @@ export class WarehouseService {
     const mutex = this.db.getProductMutex(productId);
     return await mutex.runExclusive(async () => {
       // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       product.stock = newStock;
       return { message: 'Stock updated', product };
     });

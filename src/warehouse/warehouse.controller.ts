@@ -6,7 +6,10 @@ export class WarehouseController {
   constructor(private readonly warehouseService: WarehouseService) {}
 
   @Put('stock/:productId')
-  updateStock(@Param('productId') productId: string, @Body() body: { stock: number }) {
+  updateStock(
+    @Param('productId') productId: string,
+    @Body() body: { stock: number },
+  ) {
     return this.warehouseService.updateStock(productId, body.stock);
   }
 }

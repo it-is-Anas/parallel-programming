@@ -19,8 +19,8 @@ export class CartService {
     }
 
     const cart = this.getCart(userId);
-    const existingItem = cart.find(item => item.productId === productId);
-    
+    const existingItem = cart.find((item) => item.productId === productId);
+
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
