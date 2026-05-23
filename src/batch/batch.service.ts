@@ -57,4 +57,35 @@ export class BatchService {
     this.logger.log(`[Batch Job] Successfully processed ${processedCount} records in ${(endTime - startTime) / 1000} seconds.`);
     this.logger.log('--- Finished Daily Sales Batch Job ---');
   }
+
+  // ==============================================================================
+  // دالة سيئة (BAD FUNCTION): لغرض العرض والاختبار فقط (لإثبات أهمية المتطلب 4)
+  // ==============================================================================
+  async processDailySalesBad() {
+    this.logger.warn('--- Starting BAD Daily Sales Job (NO CHUNKS) ---');
+    
+    // محاولة جلب 100 ألف سجل دفعة واحدة ومعالجتهم في نفس اللحظة
+    const totalRecords = 100_000;
+    const dailySales = Array.from({ length: totalRecords }, (_, i) => ({
+      orderId: `ORD-${i + 1}`,
+      amount: Math.random() * 1000,
+    }));
+
+    const startTime = Date.now();
+    this.logger.warn(`[BAD Job] Processing ALL ${totalRecords} items AT ONCE... Brace yourself.`);
+    
+    try {
+      // الكارثة هنا: فتح 100,000 عملية في نفس الوقت يستهلك الذاكرة ويجمد السيرفر
+      await Promise.all(
+        dailySales.map(async (sale) => {
+          await new Promise((resolve) => setTimeout(resolve, 2)); 
+        })
+      );
+    } catch (e) {
+      this.logger.error('CRASH: Out of memory or event loop blocked too long!', e);
+    }
+
+    const endTime = Date.now();
+    this.logger.warn(`[BAD Job] Finished in ${(endTime - startTime) / 1000} seconds. (Notice the massive memory/CPU spike)`);
+  }
 }

@@ -108,4 +108,25 @@ export class OrdersService {
       },
     );
   }
+
+  // ==============================================================================
+  // دالة سيئة (BAD FUNCTION): لغرض العرض والاختبار فقط (لإثبات أهمية المتطلب 3)
+  // ==============================================================================
+  async checkoutBad(userId: string) {
+    this.logger.warn(`[BAD] User ${userId} starting SYNCHRONOUS checkout...`);
+    
+    // محاكاة خصم المخزون
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    this.db.carts.set(userId, []);
+
+    // المشكلة هنا: نجبر المستخدم على الانتظار حتى تنتهي المهام الثقيلة!
+    this.logger.warn(`[BAD] Blocking user ${userId} while generating PDF...`);
+    await new Promise((resolve) => setTimeout(resolve, 2000)); // فاتورة
+    
+    this.logger.warn(`[BAD] Blocking user ${userId} while sending Email...`);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // إيميل
+
+    this.logger.warn(`[BAD] User ${userId} finally gets response after waiting!`);
+    return { message: 'Checkout successful but you waited 3.5 seconds for no reason!' };
+  }
 }

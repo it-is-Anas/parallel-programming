@@ -9,4 +9,12 @@ export class OrdersController {
   checkout(@Param('userId') userId: string) {
     return this.ordersService.checkout(userId);
   }
+
+  // ==========================================
+  // BAD ENDPOINT (To show the problem of NOT using Req 3)
+  // ==========================================
+  @Post('checkout-bad/:userId')
+  checkoutBad(@Param('userId') userId: string) {
+    return this.ordersService.checkoutBad(userId);
+  }
 }

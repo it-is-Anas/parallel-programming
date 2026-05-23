@@ -12,13 +12,19 @@ export class NotificationsService {
   // خارج المسار الرئيسي للطلب باستخدام الأحداث غير المتزامنة.
   @OnEvent('order.completed', { async: true })
   async handleOrderCompletedEvent(payload: { userId: string; itemsCount: number }) {
-    this.logger.log(`[ASYNC JOB] Starting background tasks for User ${payload.userId}...`);
+    this.logger.log(`[ASYNC JOB] Starting background tasks for User ${payload.userId} concurrently...`);
     
-    // محاكاة عمليات تأخذ وقت طويل وتستهلك موارد (مثل معالجة PDF وإرسال إيميلات)
-    await this.generateInvoice(payload.userId);
-    await this.sendEmailNotification(payload.userId);
+    // ==============================================================================
+    // تحسين المتطلب 3: استخدام Concurrency لمعالجة المهام في وقت واحد
+    // ==============================================================================
+    // بدلاً من انتظار كل مهمة لتنتهي قبل البدء بالأخرى، نقوم بتشغيلهم معاً.
+    // الوقت الإجمالي سيكون وقت أطول مهمة فقط (2 ثانية) بدلاً من مجموعهم (3 ثواني).
+    await Promise.all([
+      this.generateInvoice(payload.userId),
+      this.sendEmailNotification(payload.userId),
+    ]);
 
-    this.logger.log(`[ASYNC JOB] Background tasks for User ${payload.userId} completed successfully.`);
+    this.logger.log(`[ASYNC JOB] All background tasks for User ${payload.userId} completed.`);
   }
 
   private async generateInvoice(userId: string) {

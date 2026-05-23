@@ -11,4 +11,13 @@ export class BatchController {
     this.batchService.processDailySalesInChunks();
     return { message: 'Batch processing of daily sales started in the background.' };
   }
+
+  // ==========================================
+  // BAD ENDPOINT (To show the problem of NOT using Req 4)
+  // ==========================================
+  @Post('trigger-daily-sales-bad')
+  async triggerDailySalesProcessingBad() {
+    this.batchService.processDailySalesBad();
+    return { message: 'BAD Batch started. Watch the server freeze or memory spike!' };
+  }
 }
