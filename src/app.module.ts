@@ -13,6 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { ConcurrencyModule } from './concurrency/concurrency.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BatchModule } from './batch/batch.module';
+import { LoadBalancerModule } from './load-balancer/load-balancer.module';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 
 @Module({
@@ -28,6 +29,7 @@ import { PerformanceInterceptor } from './common/interceptors/performance.interc
     NotificationsModule,
     ScheduleModule.forRoot(),
     BatchModule,
+    LoadBalancerModule,
   ],
   controllers: [AppController],
   providers: [

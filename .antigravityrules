@@ -1,0 +1,46 @@
+make sure to follow these rules at all times:
+
+To prevent commands from hanging, getting stuck, or timing out:
+
+ALWAYS append ; exit to the end of every single command string to terminate the PowerShell process and return output immediately.
+
+Example: dir ; exit
+
+Example: npm run build ; exit
+
+ALWAYS close stdin using $null | for potentially interactive, blocking, or prompt-heavy commands.
+
+Example: $null | npm install ; exit
+
+ALWAYS use outer double quotes and inner single quotes for inline Node.js scripts or complex command arguments in PowerShell to prevent quote-stripping and parsing failures.
+
+Example: $null | node -e "console.log('hello')" ; exit
+
+NEVER run Git commands. Do not execute any git commands under any circumstances.
+
+ALWAYS disable background daemons or persistent environments. Avoid executing long-running development servers (like npm run dev) unless the environment explicitly supports background tasks. Prefer npm ci for automated environments to completely bypass interactive package resolution prompts.
+
+Planning Preferences
+Old Fast Mode (Low Quota): ALWAYS operate in the older version's fast mode to minimize quota usage. Implement changes, write code, and run tests immediately without stopping to generate planning artifacts (like implementation_plan.md or task.md) or waiting for user approval.
+
+Single-Command Override: If the user explicitly includes /plan in their prompt, switch to planning mode for that specific command only, then immediately revert to fast mode for subsequent prompts.
+
+Scope Limitation
+Directory Scope Limitation: ALWAYS limit your actions, including checking, reading, or editing files, to the current root project directory and its subfolders. NEVER access, view, or modify files outside this directory unless the user explicitly includes `/full-access` in their prompt.
+
+Strict Scope Rule: NEVER implement or add any buttons, UI components, pages, routes, logic, or features that were not explicitly requested by the user. Suggestions for improvements or extra details are welcome in chat, but you MUST ask and obtain explicit approval before applying or writing any code for them. Keep changes strictly bounded to the requested work.
+
+Slash Command Preferences
+All slash commands are active for the SINGLE prompt they are sent in only. They must never toggle a persistent mode or affect subsequent prompts.
+
+- `/chat`: NEVER edit any code for that prompt. Only answer the question asked in chat.
+- `/explain`: Implement the requested code changes first, then thoroughly explain the changes made in chat.
+- `/styles`: Only change the styles/CSS/layout of elements. NEVER modify the underlying logic, APIs, backend linking, or data flows.
+- `/plan`: Switch to planning mode for that specific command only (creating an implementation plan and waiting for user approval), then immediately revert to fast mode.
+- `/comments`: Add helpful, explanatory comments directly into the code files/blocks highlighted and sent by the user for that prompt.
+- `/find`: Locate codes in the codebase related to the user's question and add 2 commented boundary lines around those codes without commenting out the code itself (using the appropriate comment style for the file type, e.g., `//` or `/*` or `#`) like:
+  // ########################
+  code (uncommented)
+  // ########################
+- `/full-access`: Permit the agent to access, view, or modify files outside the current root project directory and its subfolders for that prompt.
+- `/chat-find`: Locate relevant codes in the codebase related to the user's question, add the 2 commented boundary lines around them (like `/find`), and thoroughly explain the code and answers to your questions in chat without making any other functional code changes.
