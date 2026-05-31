@@ -13,16 +13,9 @@ export class OrdersService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async checkout(userId: string) {
-    this.logger.log(`User ${userId} attempting to checkout...`);
+  async checkout(userId: string, simulatePaymentFailure = false) {
+    this.logger.log(`User ${userId} attempting to checkout (ACID mode)...`);
 
-    // ==============================================================================
-    // المتطلب غير الوظيفي 2: إدارة الموارد الحاسوبية (Resource Management & Capacity Control)
-    // ==============================================================================
-    // لاختبار هذا المتطلب: قم بإرسال 50 طلب شراء في نفس اللحظة.
-    // ستلاحظ أن النظام سيقوم بمعالجة طلبين فقط في نفس الوقت (بناءً على حجم الـ Semaphore).
-    // بقية الطلبات لن تسبب انهيار (Crash) للنظام ولن تستهلك الذاكرة بشكل مفرط،
-    // بل ستنتظر في طابور (Queue) حتى ينتهي أحد الطلبين الحاليين.
     this.logger.log(
       `User ${userId} waiting in queue (Semaphore slots: ${this.concurrencyService.checkoutSemaphore.getValue()} available)`,
     );
@@ -37,34 +30,34 @@ export class OrdersService {
           throw new BadRequestException('Cart is empty');
         }
 
-        // ترتيب المنتجات لمنع حدوث الـ Deadlock إذا كان هناك عدة سلات تحتوي على نفس المنتجات
+        // ترتيب المنتجات لمنع حدوث الـ Deadlock
         const sortedCart = [...cart].sort((a, b) =>
           a.productId.localeCompare(b.productId),
         );
         const releases: Array<() => void> = [];
 
+        // أخذ لقطة (Snapshot) لحالة المخزون قبل التعديل لدعم الـ Rollback (ACID)
+        const stockSnapshot = new Map<string, number>();
+
         try {
-          // ==============================================================================
-          // المتطلب غير الوظيفي 1: حماية البيانات من التضارب (Data Integrity & Concurrent Access)
-          // ==============================================================================
-          // لاختبار هذا المتطلب (Race Condition): قم بإنشاء منتج كميته 1 فقط في المخزون.
-          // ثم اجعل 50 مستخدم يحاولون شراء هذا المنتج في نفس اللحظة (بشكل متوازٍ).
-          // بفضل الـ Mutex (القفل)، مستخدم واحد فقط سيتمكن من الدخول وتغيير الكمية إلى 0.
-          // عندما يحاول المستخدم الثاني الدخول، سيجد أن الكمية أصبحت 0 وسيرفض النظام طلبه.
-          // لو لم نستخدم Mutex، لكان جميع الـ 50 مستخدم رأوا الكمية 1 واشتروا المنتج،
-          // مما يجعل المخزون بالسالب (-49) ويحدث تضارب في البيانات.
           for (const item of sortedCart) {
             const mutex = this.concurrencyService.getProductMutex(
               item.productId,
             );
-            const release = await mutex.acquire(); // قفل المنتج (لا يمكن لأحد غيري تعديله الآن)
+            const release = await mutex.acquire();
             releases.push(release);
+
+            // حفظ الحالة الأصلية
+            const product = this.db.products.get(item.productId);
+            if (product) {
+              stockSnapshot.set(item.productId, product.stock);
+            }
           }
 
-          // محاكاة تأخير وهمي لعملية الدفع (لإظهار أثر التوازي والانتظار بوضوح في الاختبار)
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // محاكاة تأخير وهمي لعملية التحقق
+          await new Promise((resolve) => setTimeout(resolve, 300));
 
-          // التحقق من أن المخزون كافي لكل المنتجات المطلوبة
+          // التحقق من أن المخزون كافي
           for (const item of cart) {
             const product = this.db.products.get(item.productId);
             if (!product || product.stock < item.quantity) {
@@ -74,7 +67,7 @@ export class OrdersService {
             }
           }
 
-          // خصم الكمية من المخزون بأمان (لأننا نمتلك القفل Mutex حالياً)
+          // خصم الكمية من المخزون
           for (const item of cart) {
             const product = this.db.products.get(item.productId);
             if (product) {
@@ -82,22 +75,42 @@ export class OrdersService {
             }
           }
 
-          // إفراغ السلة بعد نجاح الشراء
+          // محاكاة عملية الدفع الإلكتروني
+          this.logger.log(`Processing payment for User ${userId}...`);
+          await new Promise((resolve) => setTimeout(resolve, 200));
+
+          if (simulatePaymentFailure) {
+            // حدوث فشل في الدفع -> تراجع عن كل شيء (Rollback)
+            throw new BadRequestException('Payment processing failed! Transaction rolled back.');
+          }
+
+          // إفراغ السلة بعد نجاح الشراء (Commit)
           this.db.carts.set(userId, []);
           this.logger.log(
-            `User ${userId} checkout successful. Stock deducted.`,
+            `User ${userId} checkout successful. Stock committed.`,
           );
 
-          // المتطلب الثالث: إطلاق حدث غير متزامن (Asynchronous Event)
-          // المستخدم سيتلقى استجابة فورية (HTTP 200 OK) دون انتظار إرسال الإيميل أو طباعة الفاتورة.
           this.eventEmitter.emit('order.completed', {
             userId,
             itemsCount: cart.length,
           });
 
-          return { message: 'Checkout successful' };
+          return { message: 'Checkout successful and committed' };
+        } catch (error) {
+          // ==============================================================================
+          // المتطلب غير الوظيفي 8: الـ Rollback عند حدوث فشل لضمان الـ ACID
+          // ==============================================================================
+          this.logger.error(`Checkout failed for User ${userId}. Initiating rollback...`);
+          
+          for (const [productId, oldStock] of stockSnapshot.entries()) {
+            const product = this.db.products.get(productId);
+            if (product) {
+              product.stock = oldStock; // إعادة المخزون لحالته الأصلية
+              this.logger.warn(`Rolled back Product ${productId} stock to ${oldStock}`);
+            }
+          }
+          throw error;
         } finally {
-          // فك القفل (Mutex) عن جميع المنتجات ليتمكن المستخدمون الآخرون من محاولة شرائها
           for (const release of releases.reverse()) {
             release();
           }
@@ -107,6 +120,37 @@ export class OrdersService {
         }
       },
     );
+  }
+
+  // دالة لا تطبق الـ ACID (تحديث مخزون دون القدرة على التراجع في حال فشل الدفع)
+  async checkoutNoAcid(userId: string, simulatePaymentFailure = false) {
+    this.logger.warn(`[NO-ACID] User ${userId} starting checkout without Transaction Integrity...`);
+
+    const cart = this.db.carts.get(userId);
+    if (!cart || cart.length === 0) {
+      throw new BadRequestException('Cart is empty');
+    }
+
+    // 1. خصم المخزون فوراً دون أخذ snapshot
+    for (const item of cart) {
+      const product = this.db.products.get(item.productId);
+      if (product) {
+        if (product.stock < item.quantity) {
+          throw new BadRequestException(`Insufficient stock for product ${item.productId}`);
+        }
+        product.stock -= item.quantity;
+      }
+    }
+
+    // 2. محاكاة دفع يفشل
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    if (simulatePaymentFailure) {
+      this.logger.error(`[NO-ACID] Payment failed for User ${userId}. BUT NO ROLLBACK OCCURRED!`);
+      throw new BadRequestException('Payment failed. (Notice: Stock was already deducted and NOT rolled back!)');
+    }
+
+    this.db.carts.set(userId, []);
+    return { message: 'Checkout successful (No ACID)' };
   }
 
   // ==============================================================================

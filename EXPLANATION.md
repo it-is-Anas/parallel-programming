@@ -236,7 +236,22 @@ async handleRequestLeastConnections(clientIp: string) {
 
 ---
 
-## 8. أين تم تطبيق البرمجة الموجهة للجوانب (AOP) لمراقبة الأداء؟
+## 8. سلامة المعاملات (Transaction Integrity / ACID)
+
+### كيف تم تحقيقها:
+لضمان سلامة العمليات المركبة (تخفيض المخزون + الدفع + إتمام الطلب) ككتلة واحدة غير قابلة للتجزئة (خاصية Atomicity في ACID):
+* تم تطبيق نظام **لقطة الحالة (Snapshot)** قبل أي تعديل على المخزون.
+* في حال فشل أي خطوة (مثل فشل عملية الدفع الإلكتروني)، يلتقط النظام الاستثناء في كتلة `catch` ويقوم بإرجاع قيم المخزون الأصلية المحفوظة في اللقطة (عملية **Rollback**)، مما يحافظ على اتساق البيانات.
+* في حال نجاح كل الخطوات، يتم إتمام الطلب وتفريغ سلة الشراء (عملية **Commit**).
+
+### الكود المسؤول عن تحقيقها:
+* **تعديل كود خدمة الطلبات:** [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
+* **المتحكم:** [orders.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.controller.ts)
+* **ملف الاختبار:** [test-acid.js](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/test-acid.js)
+
+---
+
+## 9. أين تم تطبيق البرمجة الموجهة للجوانب (AOP) لمراقبة الأداء؟
 
 ### كيف تم تطبيقها:
 تم تطبيق مفهوم **AOP (Aspect-Oriented Programming)** لمراقبة أداء الخادم وقياس زمن الاستجابة لكل مسار (Route) بشكل مركزي ومستقل عن شيفرة العمل الأساسية (Separation of Concerns).
