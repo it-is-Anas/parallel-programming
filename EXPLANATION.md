@@ -216,7 +216,27 @@ async handleRequestLeastConnections(clientIp: string) {
 
 ---
 
-## 6. أين تم تطبيق البرمجة الموجهة للجوانب (AOP) لمراقبة الأداء؟
+## 7. التحكم في الأقفال (Concurrency Control / Locking)
+
+### كيف تم تحقيقها:
+تمت إضافة دعم كامل لنوعي الأقفال عند تحديث كميات المخزون الحساسة:
+
+1. **القفل المتفائل (Optimistic Locking):**
+   * **الفكرة:** لا يحظر السجل ولكن يفحص حقل الإصدار `version`. إذا تطابق رقم الإصدار الذي أرسله العميل مع الرقم الحالي في قاعدة البيانات، يكتمل الطلب ويزداد رقم الإصدار. وإلا يفشل الطلب برميه لـ `ConflictException (HTTP 409)`.
+   * **التبرير:** ممتاز في الحالات التي يكون فيها التعديل المتزامن على نفس السجل نادراً، مما يحفظ أداء وسرعة النظام.
+
+2. **القفل التشاؤمي (Pessimistic Locking):**
+   * **الفكرة:** يقوم بحجز قفل متفرد (Mutex) فوراً عند بدء معالجة الطلب، مما يجبر أي طلب متزامن آخر على الانتظار حتى تنتهي العملية تماماً ويتم تحرير القفل.
+   * **التبرير:** ممتاز جداً للعمليات شديدة الحساسية ولتجنب إرجاع أخطاء للمستخدمين بشكل متكرر عند تعديل نفس المنتج.
+
+### الكود المسؤول عن تحقيقها:
+* **تعديل كود الخدمة:** [products.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.service.ts)
+* **نقاط الوصول:** [products.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.controller.ts)
+* **ملف الاختبار:** [test-locking.js](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/test-locking.js)
+
+---
+
+## 8. أين تم تطبيق البرمجة الموجهة للجوانب (AOP) لمراقبة الأداء؟
 
 ### كيف تم تطبيقها:
 تم تطبيق مفهوم **AOP (Aspect-Oriented Programming)** لمراقبة أداء الخادم وقياس زمن الاستجابة لكل مسار (Route) بشكل مركزي ومستقل عن شيفرة العمل الأساسية (Separation of Concerns).
