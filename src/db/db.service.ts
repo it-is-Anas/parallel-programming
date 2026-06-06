@@ -15,6 +15,7 @@ export class DbService {
     ['1', { id: '1', name: 'Laptop', stock: 10, price: 1000, version: 1 }],
     ['2', { id: '2', name: 'Phone', stock: 5, price: 500, version: 1 }],
     ['3', { id: '3', name: 'RaceConditionItem', stock: 1, price: 100, version: 1 }], // Specifically for testing race conditions
+    ['100', { id: '100', name: 'StressTestItem', stock: 100, price: 150, version: 1 }], // Dedicated item for stress test
   ]);
 
   public carts: Map<string, any[]> = new Map();
@@ -26,6 +27,7 @@ export class DbService {
       ['1', { id: '1', name: 'Laptop', stock: 10, price: 1000, version: 1 }],
       ['2', { id: '2', name: 'Phone', stock: 5, price: 500, version: 1 }],
       ['3', { id: '3', name: 'RaceConditionItem', stock: 1, price: 100, version: 1 }],
+      ['100', { id: '100', name: 'StressTestItem', stock: 100, price: 150, version: 1 }],
     ]);
     this.carts.clear();
   }
