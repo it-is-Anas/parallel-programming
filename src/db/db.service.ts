@@ -29,4 +29,10 @@ export class DbService {
     ]);
     this.carts.clear();
   }
+
+  async findProductWithDelay(id: string): Promise<Product | undefined> {
+    // Simulate high database query cost (500ms)
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return this.products.get(id);
+  }
 }

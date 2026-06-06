@@ -1,12 +1,14 @@
 import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
 import { DbService } from '../db/db.service';
 import { ConcurrencyService } from '../concurrency/concurrency.service';
+import { RedisService } from '../db/redis.service';
 
 @Injectable()
 export class ProductsService {
   constructor(
     private readonly db: DbService,
     private readonly concurrencyService: ConcurrencyService,
+    private readonly redis: RedisService,
   ) {}
 
   findAll() {
@@ -15,6 +17,34 @@ export class ProductsService {
 
   findOne(id: string) {
     return this.db.products.get(id);
+  }
+
+  // Cache-Aside Pattern
+  async findOneCached(id: string) {
+    const cacheKey = `product:${id}`;
+    
+    // 1. Try to get from Redis
+    const cachedData = await this.redis.get(cacheKey);
+    if (cachedData) {
+      return {
+        source: 'Cache (Redis)',
+        data: JSON.parse(cachedData),
+      };
+    }
+
+    // 2. Cache Miss: Get from DB (Simulated delay of 500ms)
+    const product = await this.db.findProductWithDelay(id);
+    if (!product) {
+      throw new BadRequestException('Product not found');
+    }
+
+    // 3. Save to Redis Cache (60 seconds TTL)
+    await this.redis.set(cacheKey, JSON.stringify(product), 60);
+
+    return {
+      source: 'Database',
+      data: product,
+    };
   }
 
   // 1. القفل المتفائل (Optimistic Locking)
@@ -41,6 +71,10 @@ export class ProductsService {
     // تحديث المخزون وزيادة رقم الإصدار
     product.stock -= quantity;
     product.version += 1;
+
+    // Cache Invalidation: Invalidate product cache upon update to prevent stale data (Scenario 2)
+    const cacheKey = `product:${productId}`;
+    await this.redis.del(cacheKey);
 
     return {
       message: 'Stock updated successfully using Optimistic Locking',
@@ -71,6 +105,10 @@ export class ProductsService {
 
       product.stock -= quantity;
       product.version += 1;
+
+      // Cache Invalidation: Invalidate product cache upon update to prevent stale data (Scenario 2)
+      const cacheKey = `product:${productId}`;
+      await this.redis.del(cacheKey);
 
       return {
         message: 'Stock updated successfully using Pessimistic Locking',
