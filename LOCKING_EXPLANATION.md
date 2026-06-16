@@ -26,7 +26,7 @@
 
 تم دمج الحل وتعديله على مستوى قاعدة البيانات الوهمية وخدمة المنتجات:
 
-### 1. إضافة حقل الإصدار في قاعدة البيانات: [db.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/db/db.service.ts)
+### 1. إضافة حقل الإصدار في قاعدة البيانات: [db.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/db.service.ts)
 تم تعديل واجهة المنتج `Product` لتشمل حقل `version: number`:
 ```typescript
 export interface Product {
@@ -38,7 +38,7 @@ export interface Product {
 }
 ```
 
-### 2. معالجة القفل المتفائل والتشاؤمي في الخدمة: [products.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.service.ts)
+### 2. معالجة القفل المتفائل والتشاؤمي في الخدمة: [products.service.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.service.ts)
 * **كود القفل المتفائل (`updateStockOptimistic`):**
 ```typescript
 async updateStockOptimistic(productId: string, quantity: number, clientVersion: number) {
@@ -72,7 +72,7 @@ async updateStockPessimistic(productId: string, quantity: number) {
 }
 ```
 
-### 3. نقاط الوصول في المتحكم: [products.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.controller.ts)
+### 3. نقاط الوصول في المتحكم: [products.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.controller.ts)
 * `POST /products/:id/buy-optimistic` لاستدعاء القفل المتفائل.
 * `POST /products/:id/buy-pessimistic` لاستدعاء القفل التشاؤمي.
 
@@ -89,7 +89,7 @@ npm run start
 ### الخطوة 2: تشغيل نص محاكاة الأقفال
 افتح نافذة ترمينال ثانية وشغّل الأمر التالي:
 ```bash
-node test-locking
+node test-locking.js
 ```
 
 ---

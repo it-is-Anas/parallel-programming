@@ -21,7 +21,7 @@
 
 تم تطبيق وضمان سلامة المعاملة داخل ملفات الطلبات:
 
-### 1. في خدمة الطلبات: [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
+### 1. في خدمة الطلبات: [orders.service.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.service.ts)
 
 * **دالة الدفع الآمنة (ACID Mode):**
 ```typescript
@@ -67,7 +67,7 @@ async checkout(userId: string, simulatePaymentFailure = false) {
 * **دالة الدفع غير الآمنة (NON-ACID Mode):**
 تقوم بخصم المخزون فوراً دون القدرة على التراجع في حال فشل الدفع، مما يؤدي لسرقة المخزون من العميل دون إتمام الطلب.
 
-### 2. في متحكم الطلبات: [orders.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.controller.ts)
+### 2. في متحكم الطلبات: [orders.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.controller.ts)
 * `POST /orders/checkout/:userId?simulatePaymentFailure=true` لاختبار التراجع التلقائي (ACID).
 * `POST /orders/checkout-no-acid/:userId?simulatePaymentFailure=true` لاختبار الخلل وضياع المخزون عند غياب المعاملات (NON-ACID).
 

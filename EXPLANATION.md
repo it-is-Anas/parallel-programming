@@ -1,6 +1,6 @@
 # مشروع مادة البرمجة المتوازية - توثيق متطلبات المشروع 2026
 
-يحتوي هذا الملف على شرح مفصل لكيفية تحقيق المتطلبات غير الوظيفية الأربعة الأولى (1، 2، 3، 4) في المشروع، بالإضافة إلى توضيح أين وكيف تم تطبيق مفهوم البرمجة الموجهة للجوانب (AOP) لقياس الأداء.
+يحتوي هذا الملف على توثيق وشرح تفصيلي لتنفيذ متطلبات المشروع، بما يشمل تحقيق حماية البيانات من التضارب (التحكم في الأقفال)، إدارة الموارد والموازنة، معالجة البيانات غير المتزامنة وعلى دفعات، قياس ومراقبة الأداء (AOP)، بالإضافة إلى سيناريوهات اختبار التحمل (Stress Testing).
 
 ---
 
@@ -13,7 +13,7 @@
 * **منع المأزق (Deadlock Prevention):** تم ترتيب المنتجات في السلة أبجدياً حسب المعرف `productId` قبل حجز الأقفال. هذا يضمن أنه إذا كان هناك مستخدمان يحتويان على سلال تحتوي على نفس المنتجات (مثلاً المنتج A والمنتج B)، سيقوم كلاهما بطلب قفل A أولاً ثم قفل B، مما يمنع حدوث دائرية الانتظار (Circular Wait) المسببة للـ Deadlock.
 
 ### الكود المسؤول عن تحقيقها:
-* **خدمة المزامنة:** [concurrency.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/concurrency/concurrency.service.ts)
+* **خدمة المزامنة:** [concurrency.service.ts](file:///c:/Users/Zaid/parallel-programming/src/concurrency/concurrency.service.ts)
 ```typescript
 import { Injectable } from '@nestjs/common';
 import { Mutex, Semaphore } from 'async-mutex';
@@ -31,7 +31,7 @@ export class ConcurrencyService {
 }
 ```
 
-* **حجز الأقفال وتعديل المخزون بأمان:** [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
+* **حجز الأقفال وتعديل المخزون بأمان:** [orders.service.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.service.ts)
 ```typescript
 // ترتيب المنتجات لمنع حدوث الـ Deadlock
 const sortedCart = [...cart].sort((a, b) =>
@@ -82,13 +82,13 @@ try {
 * بعد انتهاء أي من الطلبين الجاري معالجتهما، يتم تحرير خانة في الـ Semaphore ليدخل الطلب التالي في الطابور تلقائياً.
 
 ### الكود المسؤول عن تحقيقها:
-* **تعريف الـ Semaphore:** [concurrency.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/concurrency/concurrency.service.ts)
+* **تعريف الـ Semaphore:** [concurrency.service.ts](file:///c:/Users/Zaid/parallel-programming/src/concurrency/concurrency.service.ts)
 ```typescript
 // Semaphore للتحكم بالقدرة الاستيعابية وتحديد العمليات المتزامنة بـ 2
 public readonly checkoutSemaphore = new Semaphore(2);
 ```
 
-* **تطبيقه على عملية الدفع:** [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
+* **تطبيقه على عملية الدفع:** [orders.service.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.service.ts)
 ```typescript
 return await this.concurrencyService.checkoutSemaphore.runExclusive(
   async () => {
@@ -109,7 +109,7 @@ return await this.concurrencyService.checkoutSemaphore.runExclusive(
 * **تحسين التوازي:** بدلاً من تشغيل المهام الخلفية بشكل متسلسل، تم تشغيلها بالتوازي باستخدام `Promise.all` مما يجعل الزمن الإجمالي للمهام الخلفية مساوياً لزمن أطول مهمة فقط (2 ثانية) بدلاً من مجموع أوقاتها (3 ثوانٍ).
 
 ### الكود المسؤول عن تحقيقها:
-* **إطلاق الحدث في خدمة الطلبات:** [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
+* **إطلاق الحدث في خدمة الطلبات:** [orders.service.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.service.ts)
 ```typescript
 this.eventEmitter.emit('order.completed', {
   userId,
@@ -117,7 +117,7 @@ this.eventEmitter.emit('order.completed', {
 });
 ```
 
-* **الاستماع للحدث ومعالجته غير المتزامنة بالتوازي:** [notifications.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/notifications/notifications.service.ts)
+* **الاستماع للحدث ومعالجته غير المتزامنة بالتوازي:** [notifications.service.ts](file:///c:/Users/Zaid/parallel-programming/src/notifications/notifications.service.ts)
 ```typescript
 @OnEvent('order.completed', { async: true })
 async handleOrderCompletedEvent(payload: { userId: string; itemsCount: number }) {
@@ -159,7 +159,7 @@ async handleOrderCompletedEvent(payload: { userId: string; itemsCount: number })
 * تم دمج جدولة المهام (Cron Job) باستخدام `@nestjs/schedule` لتعمل تلقائياً كل منتصف ليل.
 
 ### الكود المسؤول عن تحقيقها:
-* **معالجة الدفعات وجدولة الـ Cron:** [batch.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/batch/batch.service.ts)
+* **معالجة الدفعات وجدولة الـ Cron:** [batch.service.ts](file:///c:/Users/Zaid/parallel-programming/src/batch/batch.service.ts)
 ```typescript
 @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
 async processDailySalesInChunks() {
@@ -203,8 +203,8 @@ async processDailySalesInChunks() {
    * **التبرير:** استراتيجية متقدمة وديناميكية تمنع زيادة العبء على خادم معين إذا كانت بعض الطلبات التي يعالجها تأخذ وقتاً طويلاً (مثل توليد تقرير كبير أو معالجة معقدة)، بينما الخوادم الأخرى فارغة، مما يضمن توازن حقيقي للضغط الفعلي.
 
 ### الكود المسؤول عن تحقيقها:
-* **خدمة الموازنة والتحكم:** [load-balancer.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/load-balancer/load-balancer.service.ts)
-* **المتحكم ومنافذ الـ API:** [load-balancer.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/load-balancer/load-balancer.controller.ts)
+* **خدمة الموازنة والتحكم:** [load-balancer.service.ts](file:///c:/Users/Zaid/parallel-programming/src/load-balancer/load-balancer.service.ts)
+* **المتحكم ومنافذ الـ API:** [load-balancer.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/load-balancer/load-balancer.controller.ts)
 
 مثال على خوارزمية **Least Connections** في الخدمة:
 ```typescript
@@ -246,9 +246,9 @@ async handleRequestLeastConnections(clientIp: string) {
    * **التبرير:** ممتاز جداً للعمليات شديدة الحساسية ولتجنب إرجاع أخطاء للمستخدمين بشكل متكرر عند تعديل نفس المنتج.
 
 ### الكود المسؤول عن تحقيقها:
-* **تعديل كود الخدمة:** [products.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.service.ts)
-* **نقاط الوصول:** [products.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/products/products.controller.ts)
-* **ملف الاختبار:** [test-locking.js](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/test-locking.js)
+* **تعديل كود الخدمة:** [products.service.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.service.ts)
+* **نقاط الوصول:** [products.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.controller.ts)
+* **ملف الاختبار:** [test-locking.js](file:///c:/Users/Zaid/parallel-programming/test-locking.js)
 
 ---
 
@@ -261,62 +261,66 @@ async handleRequestLeastConnections(clientIp: string) {
 * في حال نجاح كل الخطوات، يتم إتمام الطلب وتفريغ سلة الشراء (عملية **Commit**).
 
 ### الكود المسؤول عن تحقيقها:
-* **تعديل كود خدمة الطلبات:** [orders.service.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.service.ts)
-* **المتحكم:** [orders.controller.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/orders/orders.controller.ts)
-* **ملف الاختبار:** [test-acid.js](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/test-acid.js)
+* **تعديل كود خدمة الطلبات:** [orders.service.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.service.ts)
+* **المتحكم:** [orders.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/orders/orders.controller.ts)
+* **ملف الاختبار:** [test-acid.js](file:///c:/Users/Zaid/parallel-programming/test-acid.js)
 
 ---
 
-## 9. أين تم تطبيق البرمجة الموجهة للجوانب (AOP) لمراقبة الأداء؟
+## 9. توليد ضغط متزامن واختبار التحمل (Stress Testing & Concurrent Load)
 
-### كيف تم تطبيقها:
-تم تطبيق مفهوم **AOP (Aspect-Oriented Programming)** لمراقبة أداء الخادم وقياس زمن الاستجابة لكل مسار (Route) بشكل مركزي ومستقل عن شيفرة العمل الأساسية (Separation of Concerns).
-* تم إنشاء **NestJS Interceptor** باسم `PerformanceInterceptor`.
-* يقوم المعترض باعتراض الطلبات الواردة، وتسجيل زمن البداية، وبمجرد انتهاء الطلب، يقوم بحساب الفارق الزمني وطباعة زمن الاستجابة في سجلات النظام (Logs).
-* تم تسجيله كـ **Global Interceptor** على مستوى التطبيق بالكامل في وحدة التطبيق الرئيسية `AppModule` ليعمل على كافة المسارات تلقائياً دون الحاجة لكتابة كود قياس داخل الـ Controllers أو الـ Services.
+### كيف تم تحقيقها:
+لإثبات كفاءة النظام تحت الضغط والتأكد من عدم حدوث أعطال (Crashes) أو مشاكل في تضارب البيانات، تم إنشاء أداة اختبار (Stress Test Script) تولد ضغطاً متزامناً (Concurrent) وليس متسلسلاً (Sequential).
+* تقوم الأداة بإرسال 100 طلب متزامن في نفس اللحظة لمحاكاة 100 مستخدم يحاولون شراء نفس المنتج.
+* يتم مراقبة نتائج هذا الاختبار وطباعة مخرجات واضحة تتضمن:
+  - إجمالي الطلبات (Total Requests)
+  - الطلبات الناجحة (Success Requests)
+  - الطلبات الفاشلة (Failed Requests)
+  - متوسط وقت الاستجابة (Average Response Time)
+  - حالة انهيار النظام من عدمه (System crashed or not)
 
 ### الكود المسؤول عن تحقيقها:
-* **المعترض (Performance Interceptor):** [performance.interceptor.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/common/interceptors/performance.interceptor.ts)
-```typescript
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+* **سكربت اختبار التحمل:** [stress-test.js](file:///c:/Users/Zaid/parallel-programming/stress-test.js)
 
+---
+
+## 10. قياس الأداء (Benchmarking) وتحليل الاختناقات (Bottlenecks)
+
+### كيف تم تحقيقها (السيناريو قبل وبعد التحسين):
+تم تطبيق سيناريو قياس ومقارنة متكامل للتعرف على نقاط الاختناق في النظام (Bottlenecks) وتحسينها:
+
+1. **القياس المبدئي (Benchmark):** 
+   تم توجيه عدد كبير من الطلبات المتزامنة لنقطة الوصول المباشرة لقاعدة البيانات لمحاكاة القراءة الكثيفة (Heavy I/O).
+   
+2. **تحديد الاختناق (Monitoring & Tracing):**
+   تم تطبيق البرمجة الموجهة للجوانب (**AOP**) لمراقبة الأداء كأداة للـ Tracing و Logs. تم إنشاء `PerformanceInterceptor` (كـ Global Interceptor) لاعتراض الطلبات وتسجيل زمن تنفيذ كل مسار. من خلال السجلات (Logs)، لاحظنا بطء الاستجابة في الاستعلام المتكرر من قاعدة البيانات.
+
+3. **إجراء التحسين (Optimization):**
+   تم تطبيق نمط **Cache-Aside** باستخدام ذاكرة تخزين مؤقت (مثل Redis/In-Memory Cache). يتم أولاً البحث عن المنتج في الـ Cache، وإذا لم يوجد، يتم جلبه من قاعدة البيانات وتخزينه في الـ Cache للطلبات القادمة، مما يزيل عبء الاتصال المباشر بقاعدة البيانات.
+
+4. **القياس بعد التحسين (Before & After):**
+   تم إعادة نفس الاختبار على نقطة الوصول المحسنة (`/cached`)، وتظهر الأداة مقارنة واضحة توضح الفارق في:
+   - عدد الطلبات في الثانية (Requests Per Second)
+   - متوسط زمن الاستجابة (Average Latency)
+   - وقت التنفيذ الإجمالي (Total Execution Time)
+
+### الكود المسؤول عن تحقيقها:
+* **سكربت القياس والمقارنة:** [test-benchmark.js](file:///c:/Users/Zaid/parallel-programming/test-benchmark.js)
+* **تطبيق التحسين (Caching):** [products.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.controller.ts)
+* **نظام المراقبة (AOP Performance Interceptor):** [performance.interceptor.ts](file:///c:/Users/Zaid/parallel-programming/src/common/interceptors/performance.interceptor.ts)
+```typescript
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
   private readonly logger = new Logger('PerformanceMonitor');
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const method = request.method;
-    const url = request.url;
     const now = Date.now();
-
     return next.handle().pipe(
       tap(() => {
-        const executionTime = Date.now() - now;
-        this.logger.log(`[AOP] Route: ${method} ${url} - Execution Time: ${executionTime}ms`);
+        this.logger.log(`[AOP] Route: ${request.method} ${request.url} - Execution Time: ${Date.now() - now}ms`);
       }),
     );
   }
 }
-```
-
-* **التسجيل العام (Global Registration):** [app.module.ts](file:///C:/Users/admin/Desktop/New%20folder%20%282%29/parallel-programming/src/app.module.ts)
-```typescript
-import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
-
-@Module({
-  // ...
-  providers: [
-    AppService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: PerformanceInterceptor,
-    },
-  ],
-})
-export class AppModule {}
 ```
