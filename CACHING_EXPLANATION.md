@@ -1,64 +1,64 @@
-# Requirement 6: Distributed Caching Strategy (Redis Caching Layer)
+# المتطلب السادس: استراتيجية التخزين المؤقت الموزع (Redis Caching Layer)
 
-This document explains the design, architecture, and validation of the Distributed Caching strategy implemented in this project to resolve **Requirement 6**.
-
----
-
-## 1. Design & Architectural Strategy
-
-In high-concurrency systems, querying database engines directly for every request creates performance bottlenecks and high system load. To optimize read performance, we integrated a caching layer simulating **Redis** using the **Cache-Aside Pattern**.
-
-### A. Cache-Aside Pattern (Lazy Loading)
-1. **Query Cache:** When a user requests product details (`GET /products/:id/cached`), the system queries the caching layer first.
-2. **Cache Hit:** If the product is found in the cache, it is returned immediately (response time ~2ms).
-3. **Cache Miss:** If the product is not in the cache, the system queries the database (which includes a simulated `500ms` query delay). It then stores the retrieved product in the cache with a **Time-To-Live (TTL) of 60 seconds** and returns it to the user.
-
-### B. Cache Invalidation (Preventing Stale Data)
-A common issue in caching is **stale data** (e.g., a customer buys a product, reducing stock, but other users still see the old stock from the cache).
-To solve this:
-- Whenever a product's stock is updated (via **Optimistic Locking** or **Pessimistic Locking**), the system automatically **invalidates (deletes)** the cache entry (`redis.del(productId)`).
-- The next product fetch will trigger a **Cache Miss**, fetch the fresh stock from the database, and re-cache the updated data.
-
-### C. Technology Stack Selection: `ioredis` & `ioredis-mock`
-- **Production Readiness:** The codebase uses `ioredis`, the standard Redis client for Node.js.
-- **Developer Convenience:** For testing and evaluation, we integrate `ioredis-mock`. This runs a full-featured mock Redis server in-memory, eliminating the need to have a running Redis instance or Docker container on the host machine. You can swap this to a real Redis server by uncommenting a single line in [redis.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/redis.service.ts).
+يشرح هذا المستند التصميم والهيكلية والتحقق من صحة استراتيجية التخزين المؤقت الموزع التي تم تنفيذها في هذا المشروع لتلبية **المتطلب السادس**.
 
 ---
 
-## 2. Code Modifications & Structure
+## 1. التصميم والاستراتيجية الهيكلية
 
-The caching module is composed of the following updates:
+في الأنظمة ذات الطلبات المتزامنة العالية، يؤدي الاستعلام من محركات قواعد البيانات مباشرة لكل طلب إلى خلق اختناقات في الأداء (Bottlenecks) وزيادة الحمل على النظام. لتحسين أداء القراءة، قمنا بدمج طبقة تخزين مؤقت (Caching Layer) تحاكي **Redis** باستخدام نمط **Cache-Aside Pattern**.
 
-1. **Redis Service:** [redis.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/redis.service.ts)
-   Initializes the mock/real Redis client and provides clean `get`, `set` (with TTL), and `del` wrappers.
-2. **Database Latency Simulation:** [db.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/db.service.ts)
-   Adds `findProductWithDelay(id)` simulating `500ms` database read latency.
-3. **Caching & Invalidation Logic:** [products.service.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.service.ts)
-   - Integrates the Cache-Aside pattern.
-   - Deletes the cached product when updates succeed.
-4. **Endpoint Exposure:** [products.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.controller.ts)
-   - Exposes `GET /products/:id/cached`.
+### أ. نمط Cache-Aside (التحميل المتأخر - Lazy Loading)
+1. **استعلام التخزين المؤقت:** عندما يطلب مستخدم تفاصيل منتج (`GET /products/:id/cached`)، يقوم النظام بالاستعلام من طبقة التخزين المؤقت أولاً.
+2. **العثور في الذاكرة المؤقتة (Cache Hit):** إذا تم العثور على المنتج في التخزين المؤقت، يتم إرجاعه فوراً (وقت الاستجابة ~2ms).
+3. **عدم العثور في الذاكرة المؤقتة (Cache Miss):** إذا لم يكن المنتج في التخزين المؤقت، يقوم النظام بالاستعلام من قاعدة البيانات (والذي يتضمن تأخيراً محاكياً للاستعلام `500ms`). ثم يقوم بتخزين المنتج المسترد في التخزين المؤقت مع **مدة صلاحية (TTL) تبلغ 60 ثانية**، وبعدها يعيده للمستخدم.
+
+### ب. إبطال التخزين المؤقت (منع البيانات القديمة - Cache Invalidation)
+المشكلة الشائعة في التخزين المؤقت هي **البيانات القديمة (Stale Data)** (على سبيل المثال، يشتري عميل منتجاً مما يقلل المخزون، لكن المستخدمين الآخرين ما زالوا يرون المخزون القديم من التخزين المؤقت).
+لحل هذه المشكلة:
+- كلما تم تحديث مخزون المنتج (عبر **القفل المتفائل (Optimistic Locking)** أو **القفل المتشائم (Pessimistic Locking)**)، يقوم النظام تلقائياً **بإبطال (حذف)** الإدخال الخاص بالمنتج من التخزين المؤقت (`redis.del(productId)`).
+- جلب المنتج في المرة القادمة سيؤدي إلى **Cache Miss**، مما يضطره إلى جلب المخزون الجديد من قاعدة البيانات، وإعادة تخزين البيانات المُحدثة.
+
+### ج. اختيار التقنيات: `ioredis` و `ioredis-mock`
+- **الجاهزية للإنتاج:** تستخدم شيفرة المشروع `ioredis`، وهو العميل القياسي لـ Redis لبيئة Node.js.
+- **تسهيل التطوير:** من أجل الاختبار والتقييم، قمنا بدمج `ioredis-mock`. هذا يُشغل خادماً وهمياً لـ Redis في الذاكرة بجميع ميزاته، مما يلغي الحاجة إلى تشغيل مثيل Redis حقيقي أو حاوية Docker على الجهاز المضيف. يمكنك التبديل إلى خادم Redis حقيقي عن طريق إزالة التعليق عن سطر واحد في [redis.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/redis.service.ts).
 
 ---
 
-## 3. How to Run Before & After Verification Tests
+## 2. تعديلات الكود والهيكلية
 
-To verify that the caching layer works and invalidates correctly, follow these steps:
+تتكون وحدة التخزين المؤقت من التحديثات التالية:
 
-### Step 1: Start the NestJS Application
-Open your terminal and start the server:
+1. **خدمة Redis:** [redis.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/redis.service.ts)
+   تقوم بتهيئة عميل Redis (الوهمي/الحقيقي) وتوفر دوال أساسية نقية مثل `get`، `set` (مع تحديد TTL)، و `del`.
+2. **محاكاة تأخير قاعدة البيانات:** [db.service.ts](file:///c:/Users/Zaid/parallel-programming/src/db/db.service.ts)
+   تضيف الدالة `findProductWithDelay(id)` لمحاكاة تأخير في استجابة قاعدة البيانات بمقدار `500ms`.
+3. **منطق التخزين المؤقت والإبطال:** [products.service.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.service.ts)
+   - تطبيق نمط Cache-Aside.
+   - حذف المنتج المُخزن مؤقتاً عند نجاح التحديثات.
+4. **كشف نقطة النهاية (Endpoint Exposure):** [products.controller.ts](file:///c:/Users/Zaid/parallel-programming/src/products/products.controller.ts)
+   - الكشف عن مسار `GET /products/:id/cached`.
+
+---
+
+## 3. كيفية تشغيل اختبارات التحقق قبل وبعد التطبيق
+
+للتحقق من أن طبقة التخزين المؤقت تعمل وتبطل البيانات بشكل صحيح، اتبع الخطوات التالية:
+
+### الخطوة الأولى: بدء تشغيل تطبيق NestJS
+افتح الطرفية (Terminal) وشغل الخادم:
 ```bash
 npm run start
 ```
-*Note: Make sure to run `npm install` first to install the new `ioredis` and `ioredis-mock` dependencies.*
+*ملاحظة: تأكد من تشغيل `npm install` أولاً لتثبيت التبعيات الجديدة `ioredis` و `ioredis-mock`.*
 
-### Step 2: Run the Caching Test Script
-In a separate terminal window, run the automated test:
+### الخطوة الثانية: تشغيل سكربت اختبار التخزين المؤقت
+في نافذة طرفية منفصلة، قم بتشغيل الاختبار الآلي:
 ```bash
 node test-caching
 ```
 
-### Expected Output & Explanation
+### المخرجات المتوقعة وشرحها
 
 ```text
 ================================================================
@@ -94,6 +94,6 @@ Result: Source = "Cache (Redis)", Stock = 8, Version = 2
 Response Time: 2ms (Expected: <15ms - Cache Hit with updated stock)
 ```
 
-- **Before Caching (Request 1):** The application queries the database directly, taking **~500ms**.
-- **After Caching (Requests 2 & 3):** Subsequent reads hit the Redis cache, serving requests instantly in **~1-3ms**.
-- **Data Freshness / Invalidation (Request 4 & 5):** When the stock changes, the old cache is invalidated. The next query forces a database fetch (**~500ms**) to load the fresh stock level (from `10` down to `8`), ensuring complete consistency.
+- **قبل التخزين المؤقت (الطلب 1):** يستعلم التطبيق من قاعدة البيانات مباشرة، ويستغرق حوالي **~500ms**.
+- **بعد التخزين المؤقت (الطلبات 2 و 3):** القراءات اللاحقة يتم جلبها من التخزين المؤقت (Redis cache)، وتخدم الطلبات على الفور في غضون **~1-3ms**.
+- **حداثة البيانات / الإبطال (الطلب 4 و 5):** عندما يتغير المخزون، يتم إبطال التخزين المؤقت القديم. الاستعلام التالي يضطر لجلب البيانات من قاعدة البيانات (**~500ms**) لتحميل مستوى المخزون الجديد (من `10` إلى `8`)، مما يضمن تناسقاً تاماً للبيانات.
