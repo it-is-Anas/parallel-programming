@@ -14,6 +14,12 @@ export class AppController {
     return this.appService.getHello();
   }
 
+  @Get('process')
+  processRequest() {
+    const port = process.env.PORT || 3000;
+    return { message: `Handled by node on port ${port}` };
+  }
+
   @Post('reset')
   reset() {
     this.dbService.reset();

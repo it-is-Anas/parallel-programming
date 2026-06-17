@@ -1,59 +1,62 @@
-const numRequests = 15;
+const { spawn } = require('child_process');
 
-async function testLoadBalancer() {
-  console.log('--- Resetting Load Balancer Stats ---');
-  await fetch('http://127.0.0.1:3000/load-balancer/reset', { method: 'POST' });
+const ports = [8000, 8001, 8002];
+const servers = ports.map((p) => `http://localhost:${p}/process`);
 
-  // ==============================================================================
-  // 1. اختبار استراتيجية Round Robin (التناوب الدائري)
-  // ==============================================================================
-  console.log('\n--- 1. Testing ROUND ROBIN Strategy ---');
-  console.log('Sending 15 requests sequentially to observe even distribution...');
+// Sleep function to wait for servers to boot up
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function runTest() {
+  console.log('Starting servers on ports: 8000, 8001, 8002...');
+
+  const processes = [];
+  for (const port of ports) {
+    // Run instances using ts-node
+    const p = spawn('npx', ['ts-node', 'src/main.ts'], {
+      env: { ...process.env, PORT: port.toString() },
+      shell: true,
+    });
+    
+    // Uncomment the next line if you want to see server output during startup
+    // p.stdout.on('data', (data) => console.log(`[Port ${port}] ${data.toString().trim()}`));
+    
+    processes.push(p);
+  }
+
+  // Wait 15 seconds to ensure all servers have fully started
+  console.log('Waiting 15 seconds for full startup...');
+  await sleep(15000);
+
+  console.log('\n--- Starting Load Balancer Test (Round Robin) ---\n');
+
+  const numTasks = 6;
+  let currentIndex = 0;
+
+  for (let i = 1; i <= numTasks; i++) {
+    // Round Robin Selection
+    const serverUrl = servers[currentIndex];
+    currentIndex = (currentIndex + 1) % servers.length;
+
+    try {
+      const res = await fetch(serverUrl);
+      const data = await res.json();
+      console.log(`Task ${i} -> ${data.message}`);
+    } catch (err) {
+      console.log(`Task ${i} -> Connection failed to server ${serverUrl} (Error: ${err.message})`);
+    }
+    
+    // Wait slightly between requests
+    await sleep(200);
+  }
+
+  console.log('\n--- Test finished, closing servers ---');
+  for (const p of processes) {
+    // Kill the spawned processes
+    p.kill('SIGINT');
+  }
   
-  for (let i = 1; i <= numRequests; i++) {
-    const clientIp = `192.168.1.${i}`;
-    const res = await fetch(`http://127.0.0.1:3000/load-balancer/request-rr?clientIp=${clientIp}`, { method: 'POST' });
-    const data = await res.json();
-    console.log(`[Request #${i.toString().padStart(2, ' ')}][Client: ${clientIp}] -> Routed to: ${data.routedTo} (Active on Server: ${data.activeConnectionsOnServer})`);
-  }
-
-  // طباعة حالة السيرفرات بعد انتهاء الطلبات المتتالية
-  let statusRes = await fetch('http://127.0.0.1:3000/load-balancer/status');
-  let statusData = await statusRes.json();
-  console.log('\n--- Server Stats after Round Robin (Sequential) ---');
-  console.table(statusData);
-
-  // ==============================================================================
-  // 2. اختبار استراتيجية Least Connections (الأقل اتصالاً)
-  // ==============================================================================
-  console.log('\n--- Resetting Load Balancer Stats ---');
-  await fetch('http://127.0.0.1:3000/load-balancer/reset', { method: 'POST' });
-
-  console.log('\n--- 2. Testing LEAST CONNECTIONS Strategy ---');
-  console.log('Sending 15 requests CONCURRENTLY to observe dynamic routing based on active connections...');
-
-  const startTime = Date.now();
-  const promises = [];
-
-  for (let i = 1; i <= numRequests; i++) {
-    const clientIp = `192.168.2.${i}`;
-    promises.push(
-      fetch(`http://127.0.0.1:3000/load-balancer/request-lc?clientIp=${clientIp}`, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-          const elapsed = Date.now() - startTime;
-          console.log(`[${elapsed.toString().padStart(4, ' ')}ms][Client: ${clientIp}] -> Routed to: ${data.routedTo} (At routing, active connections was: ${data.activeConnectionsOnServer})`);
-        })
-    );
-  }
-
-  await Promise.all(promises);
-
-  // طباعة حالة السيرفرات بعد انتهاء جميع الطلبات المتزامنة
-  statusRes = await fetch('http://127.0.0.1:3000/load-balancer/status');
-  statusData = await statusRes.json();
-  console.log('\n--- Server Stats after Least Connections (Concurrent) ---');
-  console.table(statusData);
+  // Exit the process
+  process.exit(0);
 }
 
-testLoadBalancer();
+runTest();
