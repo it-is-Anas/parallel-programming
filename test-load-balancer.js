@@ -11,8 +11,8 @@ async function runTest() {
 
   const processes = [];
   for (const port of ports) {
-    // Run instances using ts-node
-    const p = spawn('npx', ['ts-node', 'src/main.ts'], {
+    // Run instances using compiled production bundle
+    const p = spawn('node', ['dist/main.js'], {
       env: { ...process.env, PORT: port.toString() },
       shell: true,
     });

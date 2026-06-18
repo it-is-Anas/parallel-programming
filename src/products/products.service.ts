@@ -116,8 +116,8 @@ export class ProductsService {
         newVersion: product.version,
       };
     } finally {
-      // تحرير القفل
-      release();
+      // تحرير القفل بشكل غير متزامن لدعم الأقفال الموزعة
+      await release();
     }
   }
 }

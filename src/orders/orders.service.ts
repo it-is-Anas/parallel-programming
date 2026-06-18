@@ -34,7 +34,7 @@ export class OrdersService {
         const sortedCart = [...cart].sort((a, b) =>
           a.productId.localeCompare(b.productId),
         );
-        const releases: Array<() => void> = [];
+        const releases: Array<() => Promise<void>> = [];
 
         // أخذ لقطة (Snapshot) لحالة المخزون قبل التعديل لدعم الـ Rollback (ACID)
         const stockSnapshot = new Map<string, number>();
@@ -112,7 +112,7 @@ export class OrdersService {
           throw error;
         } finally {
           for (const release of releases.reverse()) {
-            release();
+            await release();
           }
           this.logger.log(
             `User ${userId} checkout processing finished (Semaphore released)`,

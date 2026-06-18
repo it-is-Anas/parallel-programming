@@ -27,6 +27,7 @@ export class CartService {
       cart.push({ productId, quantity, price: product.price });
     }
 
+    this.db.carts.set(userId, cart);
     return cart;
   }
 }
